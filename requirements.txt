@@ -1,7 +1,8 @@
-nicegui
-mysql-connector-python
-bcrypt
-resend
-python-dotenv
+nicegui
+mysql-connector-python
+bcrypt
+resend
+python-dotenv
 requests
 httpx
+google-genai
