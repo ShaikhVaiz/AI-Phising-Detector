@@ -72,16 +72,16 @@ def get_db_connection():
         print("Set time_zone error:", repr(e))
     return conn
 
-def _insert_security_check_sync(target, check_type, result, breach_count):
+def _insert_security_check_sync(target, check_type, result, breach_count=0, user_id=None):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute(
             """
-            INSERT INTO security_checks (email, check_type, result, breach_count)
-            VALUES (%s, %s, %s, %s)
+            INSERT INTO security_checks (user_id, email, check_type, result, breach_count)
+            VALUES (%s, %s, %s, %s, %s)
             """,
-            (target, check_type, result, breach_count)
+            (user_id, target, check_type, result, breach_count)
         )
         conn.commit()
         cursor.close()
@@ -91,18 +91,31 @@ def _insert_security_check_sync(target, check_type, result, breach_count):
         print(f"Error saving {check_type} check:", repr(e))
         return False
 
-def _fetch_recent_checks_sync():
+def _fetch_recent_checks_sync(user_id=None):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute(
-            """
-            SELECT email, check_type, result, breach_count, checked_at
-            FROM security_checks
-            ORDER BY checked_at DESC
-            LIMIT 10
-            """
-        )
+        if user_id:
+            cursor.execute(
+                """
+                SELECT email, check_type, result, breach_count, checked_at
+                FROM security_checks
+                WHERE user_id = %s
+                ORDER BY checked_at DESC
+                LIMIT 10
+                """,
+                (user_id,)
+            )
+        else:
+            cursor.execute(
+                """
+                SELECT email, check_type, result, breach_count, checked_at
+                FROM security_checks
+                WHERE user_id IS NULL
+                ORDER BY checked_at DESC
+                LIMIT 10
+                """
+            )
         rows = cursor.fetchall()
         cursor.close()
         conn.close()
@@ -111,11 +124,14 @@ def _fetch_recent_checks_sync():
         print("Error fetching recent checks:", repr(e))
         return []
 
-def _clear_security_checks_sync():
+def _clear_security_checks_sync(user_id=None):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        cursor.execute("DELETE FROM security_checks")
+        if user_id:
+            cursor.execute("DELETE FROM security_checks WHERE user_id = %s", (user_id,))
+        else:
+            cursor.execute("DELETE FROM security_checks WHERE user_id IS NULL")
         conn.commit()
         cursor.close()
         conn.close()
@@ -158,6 +174,21 @@ def get_current_user_info():
 
     if user_id:
         try:
+            uname = app.storage.user.get('username')
+            uemail = app.storage.user.get('email')
+            if uname and uemail:
+                return {
+                    'id': user_id,
+                    'username': uname,
+                    'email': uemail,
+                    'password': app.storage.user.get('password', ''),
+                    'created_at': app.storage.user.get('created_at', '2026-08-11'),
+                    'last_login': app.storage.user.get('last_login', 'Just now')
+                }
+        except Exception:
+            pass
+
+        try:
             conn = get_db_connection()
             cursor = conn.cursor()
             cursor.execute(
@@ -168,7 +199,7 @@ def get_current_user_info():
             cursor.close()
             conn.close()
             if row:
-                return {
+                info = {
                     'id': row[0],
                     'username': row[1],
                     'email': row[2],
@@ -176,6 +207,14 @@ def get_current_user_info():
                     'created_at': row[4],
                     'last_login': str(row[5]) if row[5] else "Just now"
                 }
+                try:
+                    app.storage.user['username'] = info['username']
+                    app.storage.user['email'] = info['email']
+                    app.storage.user['password'] = info['password']
+                    app.storage.user['last_login'] = info['last_login']
+                except Exception:
+                    pass
+                return info
         except Exception as e:
             print("Error retrieving session user:", repr(e))
 
@@ -548,17 +587,12 @@ def dashboard():
                 ui.element("span").classes("w-2 h-2 rounded-full bg-emerald-400 animate-pulse")
                 ui.label("Threat Radar Active")
 
-            # Avatar Circle with Initials, Red Notification Dot, and Dropdown Menu
+            # Avatar Circle with Initials and Dropdown Menu
             with ui.row().classes("items-center gap-1.5 cursor-pointer"):
-                with ui.element("div").classes("relative"):
-                    with ui.element("div").classes(
-                        "w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-white tracking-wider"
-                    ):
-                        ui.label(initials)
-                    # Red notification dot on avatar
-                    ui.element("span").classes(
-                        "absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-rose-500 border-2 border-[#0b0f19]"
-                    )
+                with ui.element("div").classes(
+                    "w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-white tracking-wider"
+                ):
+                    ui.label(initials)
                 ui.icon("expand_more", size="18px").classes("text-slate-400")
 
                 # Dropdown menu with the exact 3 options (Notification Settings removed!)
@@ -567,7 +601,6 @@ def dashboard():
                         with ui.row().classes("items-center gap-2 text-slate-200"):
                             ui.icon("person", size="16px").classes("text-emerald-400")
                             ui.label("Profile Information")
-                            ui.element("span").classes("w-1.5 h-1.5 rounded-full bg-rose-500 ml-auto")
 
                     with ui.menu_item(on_click=lambda: ui.navigate.to("/account/change-password")).classes("hover:bg-slate-800 rounded-lg text-xs py-2 px-3"):
                         with ui.row().classes("items-center gap-2 text-slate-200"):
@@ -756,6 +789,7 @@ def dashboard():
                         analyze_btn.set_text("INSPECT URL SECURITY")
 
                 analyze_btn.on("click", handle_url_analysis)
+                url_input.on("keydown.enter", handle_url_analysis)
 
             # ==================================================================
             # MODULE 2: EMAIL DATA BREACH RADAR
@@ -936,6 +970,7 @@ def dashboard():
                         check_email_btn.set_text("SCAN FOR DATA BREACHES")
 
                 check_email_btn.on("click", handle_email_analysis)
+                email_input.on("keydown.enter", handle_email_analysis)
 
         # ----------------------------------------------------------------------
         # MODULE 3: RECENT AUDIT LOG & SECURITY CHECKS
@@ -955,12 +990,13 @@ def dashboard():
                     "flat dense"
                 ).classes("text-xs text-slate-400 hover:text-rose-400 font-semibold")
 
+            current_user_id = user.get("id")
             recent_checks_container = ui.column().classes("w-full gap-2")
 
             async def refresh_recent_checks():
                 recent_checks_container.clear()
 
-                checks = await asyncio.to_thread(_fetch_recent_checks_sync)
+                checks = await asyncio.to_thread(_fetch_recent_checks_sync, current_user_id)
 
                 with recent_checks_container:
                     if not checks:
@@ -1004,7 +1040,7 @@ def dashboard():
                                 ui.badge(res_text, color=res_badge_color).props("outline").classes("text-xs font-semibold")
 
             async def handle_clear_checks():
-                success = await asyncio.to_thread(_clear_security_checks_sync)
+                success = await asyncio.to_thread(_clear_security_checks_sync, current_user_id)
                 if success:
                     ui.notify("Security checks history cleared.", type="positive", position="top")
                     await refresh_recent_checks()
@@ -1014,7 +1050,7 @@ def dashboard():
             clear_history_btn.on("click", handle_clear_checks)
 
             async def save_and_refresh_history(target, check_type, result, breach_count):
-                await asyncio.to_thread(_insert_security_check_sync, target, check_type, result, breach_count)
+                await asyncio.to_thread(_insert_security_check_sync, target, check_type, result, breach_count, current_user_id)
                 await refresh_recent_checks()
 
             ui.timer(0.1, refresh_recent_checks, once=True)
@@ -1042,16 +1078,12 @@ def render_account_view(initial_tab="security"):
             )
 
         with ui.row().classes("items-center gap-3"):
-            # Avatar circle with VS, red dot, and dropdown
+            # Avatar circle with initials and dropdown
             with ui.row().classes("items-center gap-1.5 cursor-pointer"):
-                with ui.element("div").classes("relative"):
-                    with ui.element("div").classes(
-                        "w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-white tracking-wider"
-                    ):
-                        ui.label(initials)
-                    ui.element("span").classes(
-                        "absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-rose-500 border-2 border-[#0b0f19]"
-                    )
+                with ui.element("div").classes(
+                    "w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs font-bold text-white tracking-wider"
+                ):
+                    ui.label(initials)
                 ui.icon("expand_more", size="18px").classes("text-slate-400")
 
                 with ui.menu().classes("bg-[#111827] border border-slate-800 rounded-xl p-1.5 shadow-2xl"):
@@ -1188,9 +1220,11 @@ def render_account_view(initial_tab="security"):
                             print("Change password database error:", e)
                             ui.notify("Failed to update password. Please try again.", type="negative", position="top")
 
-                    ui.button("Save Changes", on_click=save_new_password).classes(
+                    save_btn = ui.button("Save Changes", on_click=save_new_password).classes(
                         "mt-4 px-6 py-2 rounded-lg text-slate-200 font-medium text-sm transition-all"
                     ).style("background-color: #334155 !important;")
+                    curr_pass_input.on("keydown.enter", save_new_password)
+                    new_pass_input.on("keydown.enter", save_new_password)
 
                 else:
                     # ==========================================================
@@ -1240,7 +1274,6 @@ def render_account_view(initial_tab="security"):
 
         with profile_tab:
             ui.label("Profile Information")
-            ui.element("span").classes("w-2 h-2 rounded-full bg-rose-500 ml-1")
         profile_tab.on("click", select_profile)
 
         with security_tab:
@@ -1267,5 +1300,6 @@ if __name__ in {"__main__", "__mp_main__"}:
         host="0.0.0.0",
         port=int(os.environ.get("PORT", 8080)),
         dark=True,
-        storage_secret="ai_phishing_detector_storage_secret_key"
+        storage_secret="ai_phishing_detector_storage_secret_key",
+        reconnect_timeout=30.0
     )

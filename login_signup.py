@@ -1,4 +1,5 @@
 import os
+import asyncio
 from dotenv import load_dotenv
 import re
 import bcrypt
@@ -142,47 +143,70 @@ def login_page():
                     "color: #10b981; font-size: 13px; text-decoration: none;"
                 ).classes("hover:underline")
 
-            def do_login():
-                if not email.value or not password.value:
-                    notify_error("Please enter both email and password")
-                    return
-
+            def _authenticate_sync(raw_email, raw_password):
                 db_conn = None
                 cursor = None
                 try:
                     db_conn = get_db_connection()
                     cursor = db_conn.cursor()
-                    cursor.execute("SELECT * FROM users WHERE email=%s", (email.value.strip(),))
+                    cursor.execute("SELECT id, username, email, password, create_at, last_login FROM users WHERE email=%s", (raw_email,))
                     user = cursor.fetchone()
-
-                    if user and check_password(password.value, user[3]):
+                    if user and check_password(raw_password, user[3]):
                         try:
                             cursor.execute("UPDATE users SET last_login = NOW() WHERE id = %s", (user[0],))
                             db_conn.commit()
                         except Exception as e_up:
                             print("Update last_login error:", e_up)
-
-                        app.storage.user['user_id'] = user[0]
-                        app.storage.user['username'] = user[1]
-                        app.storage.user['email'] = user[2]
-                        app.storage.user['last_login'] = str(user[5]) if len(user) > 5 and user[5] else time.strftime("%Y-%m-%d %H:%M:%S")
-
-                        notify_success(f"Welcome back, {user[1]}!")
-                        ui.navigate.to("/dashboard")
+                        return {
+                            'id': user[0],
+                            'username': user[1],
+                            'email': user[2],
+                            'password': user[3],
+                            'created_at': user[4],
+                            'last_login': str(user[5]) if user[5] else time.strftime("%Y-%m-%d %H:%M:%S")
+                        }, None
                     else:
-                        notify_error("Invalid email or password")
+                        return None, "Invalid email or password"
                 except Exception as e:
-                    print("Login database error:", e)
-                    notify_error("Database connection error. Please try again.")
+                    print("Login database error:", repr(e))
+                    return None, "Database connection error. Please try again."
                 finally:
                     if cursor:
                         cursor.close()
                     if db_conn:
                         db_conn.close()
 
-            ui.button("Sign In to Dashboard", on_click=do_login).classes(
+            async def do_login():
+                e_val = (email.value or "").strip()
+                p_val = password.value or ""
+                if not e_val or not p_val:
+                    notify_error("Please enter both email and password")
+                    return
+
+                sign_in_btn.props("loading")
+                try:
+                    user_info, err = await asyncio.to_thread(_authenticate_sync, e_val, p_val)
+                    if err:
+                        notify_error(err)
+                        return
+
+                    app.storage.user['user_id'] = user_info['id']
+                    app.storage.user['username'] = user_info['username']
+                    app.storage.user['email'] = user_info['email']
+                    app.storage.user['password'] = user_info['password']
+                    app.storage.user['last_login'] = user_info['last_login']
+
+                    notify_success(f"Welcome back, {user_info['username']}!")
+                    ui.navigate.to("/dashboard")
+                finally:
+                    sign_in_btn.props(remove="loading")
+
+            sign_in_btn = ui.button("Sign In to Dashboard", on_click=do_login).classes(
                 "w-full text-slate-950 font-bold mt-5 py-2.5 rounded-lg shadow-lg"
             ).style("background-color: #10b981 !important;")
+
+            email.on("keydown.enter", do_login)
+            password.on("keydown.enter", do_login)
 
             with ui.row().classes("w-full justify-center mt-5 gap-1 items-center"):
                 ui.label("Don't have an account?").classes("text-xs text-slate-400")
@@ -224,62 +248,81 @@ def signup_page():
             ).classes("w-full mt-3").props("outlined dense dark")
             confirm.props('prepend-icon="lock_clock"')
 
-            def do_signup():
-                if not username.value or not email.value or not password.value:
-                    notify_error("Please fill all fields")
-                    return
-
-                if not valid_email(email.value):
-                    notify_error("Please enter a valid email address")
-                    return
-
-                if not valid_password(password.value):
-                    notify_error(
-                        "Password must be at least 8 characters and contain uppercase, lowercase, number and special character."
-                    )
-                    return
-
-                if password.value != confirm.value:
-                    notify_error("Passwords do not match")
-                    return
-
+            def _register_user_sync(raw_username, raw_email, raw_password):
                 db_conn = None
                 cursor = None
                 try:
                     db_conn = get_db_connection()
                     cursor = db_conn.cursor()
 
-                    cursor.execute("SELECT * FROM users WHERE email=%s", (email.value.strip(),))
+                    cursor.execute("SELECT id FROM users WHERE email=%s", (raw_email,))
                     if cursor.fetchone():
-                        notify_error("Email is already registered")
-                        return
+                        return False, "Email is already registered"
 
-                    cursor.execute("SELECT * FROM users WHERE username=%s", (username.value.strip(),))
+                    cursor.execute("SELECT id FROM users WHERE username=%s", (raw_username,))
                     if cursor.fetchone():
-                        notify_error("Username is already taken")
-                        return
+                        return False, "Username is already taken"
 
-                    hashed_password = hash_password(password.value)
+                    hashed_password = hash_password(raw_password)
                     cursor.execute(
                         "INSERT INTO users (username, email, password) VALUES (%s, %s, %s)",
-                        (username.value.strip(), email.value.strip(), hashed_password)
+                        (raw_username, raw_email, hashed_password)
                     )
                     db_conn.commit()
-
-                    notify_success("Account created successfully! Please sign in.")
-                    ui.navigate.to("/login")
+                    return True, None
                 except Exception as e:
-                    print("Signup database error:", e)
-                    notify_error("Database connection error. Please try again.")
+                    print("Signup database error:", repr(e))
+                    return False, "Database connection error. Please try again."
                 finally:
                     if cursor:
                         cursor.close()
                     if db_conn:
                         db_conn.close()
 
-            ui.button("Register Account", on_click=do_signup).classes(
+            async def do_signup():
+                u_val = (username.value or "").strip()
+                e_val = (email.value or "").strip()
+                p_val = password.value or ""
+                c_val = confirm.value or ""
+
+                if not u_val or not e_val or not p_val:
+                    notify_error("Please fill all fields")
+                    return
+
+                if not valid_email(e_val):
+                    notify_error("Please enter a valid email address")
+                    return
+
+                if not valid_password(p_val):
+                    notify_error(
+                        "Password must be at least 8 characters and contain uppercase, lowercase, number and special character."
+                    )
+                    return
+
+                if p_val != c_val:
+                    notify_error("Passwords do not match")
+                    return
+
+                register_btn.props("loading")
+                try:
+                    ok, err = await asyncio.to_thread(_register_user_sync, u_val, e_val, p_val)
+                    if not ok:
+                        notify_error(err or "Registration failed")
+                        return
+
+                    notify_success("Account created successfully! Please sign in.")
+                    ui.navigate.to("/login")
+                finally:
+                    register_btn.props(remove="loading")
+
+            register_btn = ui.button("Register Account", on_click=do_signup).classes(
                 "w-full text-slate-950 font-bold mt-5 py-2.5 rounded-lg shadow-lg"
             ).style("background-color: #10b981 !important;")
+
+            username.on("keydown.enter", do_signup)
+            email.on("keydown.enter", do_signup)
+            password.on("keydown.enter", do_signup)
+            confirm.on("keydown.enter", do_signup)
 
             with ui.row().classes("w-full justify-center mt-5 gap-1 items-center"):
                 ui.label("Already registered?").classes("text-xs text-slate-400")
@@ -327,60 +370,91 @@ def forgot_password_page():
             confirm_password.props('prepend-icon="lock_clock"')
             confirm_password.set_visibility(False)
 
-            def send_otp_clicked():
-                global otp_verified
-                if otp_verified:
-                    notify_success("OTP is already verified.")
-                    return
-
-                if not valid_email(email.value):
-                    notify_error("Please enter a valid email address")
-                    return
-
+            def _find_user_sync(raw_email):
                 db_conn = None
                 cursor = None
                 try:
                     db_conn = get_db_connection()
                     cursor = db_conn.cursor()
-                    cursor.execute("SELECT * FROM users WHERE email=%s", (email.value.strip(),))
-                    user = cursor.fetchone()
+                    cursor.execute("SELECT id FROM users WHERE email=%s", (raw_email,))
+                    return cursor.fetchone() is not None, None
                 except Exception as e:
-                    print("OTP database error:", e)
-                    notify_error("Database connection error. Please try again.")
-                    return
+                    print("OTP database error:", repr(e))
+                    return False, "Database connection error. Please try again."
                 finally:
                     if cursor:
                         cursor.close()
                     if db_conn:
                         db_conn.close()
 
-                if not user:
-                    notify_error("No account found with this email")
+            def _update_password_sync(raw_email, hashed_pw):
+                db_conn = None
+                cursor = None
+                try:
+                    db_conn = get_db_connection()
+                    cursor = db_conn.cursor()
+                    cursor.execute(
+                        "UPDATE users SET password=%s WHERE email=%s",
+                        (hashed_pw, raw_email)
+                    )
+                    db_conn.commit()
+                    return True, None
+                except Exception as e:
+                    print("Reset password database error:", repr(e))
+                    return False, "Database connection error. Please try again."
+                finally:
+                    if cursor:
+                        cursor.close()
+                    if db_conn:
+                        db_conn.close()
+
+            async def send_otp_clicked():
+                global otp_verified
+                if otp_verified:
+                    notify_success("OTP is already verified.")
                     return
 
-                if email.value in otp_time:
-                    elapsed = time.time() - otp_time[email.value]
-                    if elapsed < 300:
-                        remaining = int((300 - elapsed) / 60) + 1
-                        notify_error(f"Please wait {remaining} minute(s) before requesting another OTP.")
+                e_val = (email.value or "").strip()
+                if not valid_email(e_val):
+                    notify_error("Please enter a valid email address")
+                    return
+
+                send_otp_button.props("loading")
+                try:
+                    user_exists, err = await asyncio.to_thread(_find_user_sync, e_val)
+                    if err:
+                        notify_error(err)
                         return
 
-                generated_otp = str(random.randint(100000, 999999))
-                success = send_otp(email.value.strip(), generated_otp)
-                if not success:
-                    notify_error("Failed to dispatch OTP. Please check Resend API configuration.")
-                    return
+                    if not user_exists:
+                        notify_error("No account found with this email")
+                        return
 
-                otp_storage[email.value] = generated_otp
-                otp_time[email.value] = time.time()
+                    if e_val in otp_time:
+                        elapsed = time.time() - otp_time[e_val]
+                        if elapsed < 300:
+                            remaining = int((300 - elapsed) / 60) + 1
+                            notify_error(f"Please wait {remaining} minute(s) before requesting another OTP.")
+                            return
 
-                otp.set_visibility(True)
-                countdown.set_visibility(True)
-                notify_success("OTP dispatched successfully to your email!")
+                    generated_otp = str(random.randint(100000, 999999))
+                    success = await asyncio.to_thread(send_otp, e_val, generated_otp)
+                    if not success:
+                        notify_error("Failed to dispatch OTP. Please check Resend API configuration.")
+                        return
+
+                    otp_storage[e_val] = generated_otp
+                    otp_time[e_val] = time.time()
+
+                    otp.set_visibility(True)
+                    countdown.set_visibility(True)
+                    notify_success("OTP dispatched successfully to your email!")
+                finally:
+                    send_otp_button.props(remove="loading")
 
             def verify_otp():
                 global otp_verified
-                if not otp.value:
+                if not (otp.value or "").strip():
                     notify_error("Please enter the 6-digit OTP.")
                     return
 
@@ -388,17 +462,18 @@ def forgot_password_page():
                     notify_success("OTP already verified.")
                     return
 
-                if email.value not in otp_storage:
+                e_val = (email.value or "").strip()
+                if e_val not in otp_storage:
                     notify_error("Please request an OTP first.")
                     return
 
-                if time.time() - otp_time[email.value] > 300:
-                    del otp_storage[email.value]
-                    del otp_time[email.value]
+                if time.time() - otp_time[e_val] > 300:
+                    del otp_storage[e_val]
+                    del otp_time[e_val]
                     notify_error("OTP has expired. Please request a new OTP.")
                     return
 
-                if otp.value.strip() != otp_storage[email.value]:
+                if otp.value.strip() != otp_storage[e_val]:
                     notify_error("Incorrect OTP code. Please check your email.")
                     return
 
@@ -417,53 +492,46 @@ def forgot_password_page():
                 countdown.style("color: #10b981;")
                 countdown_timer.cancel()
 
-            def reset_password():
-                if new_password.value != confirm_password.value:
+            async def reset_password():
+                n_val = new_password.value or ""
+                c_val = confirm_password.value or ""
+                if n_val != c_val:
                     notify_error("Passwords do not match")
                     return
 
-                if not valid_password(new_password.value):
+                if not valid_password(n_val):
                     notify_error(
                         "Password must contain uppercase, lowercase, number, special character and be at least 8 characters."
                     )
                     return
 
-                hashed = hash_password(new_password.value)
-                db_conn = None
-                cursor = None
+                reset_button.props("loading")
                 try:
-                    db_conn = get_db_connection()
-                    cursor = db_conn.cursor()
-                    cursor.execute(
-                        "UPDATE users SET password=%s WHERE email=%s",
-                        (hashed, email.value.strip())
-                    )
-                    db_conn.commit()
-                except Exception as e:
-                    print("Reset password database error:", e)
-                    notify_error("Database connection error. Please try again.")
-                    return
+                    hashed = hash_password(n_val)
+                    e_val = (email.value or "").strip()
+                    ok, err = await asyncio.to_thread(_update_password_sync, e_val, hashed)
+                    if not ok:
+                        notify_error(err or "Failed to update password.")
+                        return
+
+                    if e_val in otp_storage:
+                        del otp_storage[e_val]
+                    if e_val in otp_time:
+                        del otp_time[e_val]
+
+                    notify_success("Password updated successfully! Please log in.")
+                    ui.navigate.to("/login")
                 finally:
-                    if cursor:
-                        cursor.close()
-                    if db_conn:
-                        db_conn.close()
-
-                if email.value in otp_storage:
-                    del otp_storage[email.value]
-                if email.value in otp_time:
-                    del otp_time[email.value]
-
-                notify_success("Password updated successfully! Please log in.")
-                ui.navigate.to("/login")
+                    reset_button.props(remove="loading")
 
             def update_countdown():
                 if otp_verified:
                     return
-                if email.value not in otp_time:
+                e_val = (email.value or "").strip()
+                if e_val not in otp_time:
                     countdown.set_text("")
                     return
-                remaining = 300 - int(time.time() - otp_time[email.value])
+                remaining = 300 - int(time.time() - otp_time[e_val])
                 if remaining <= 0:
                     countdown.set_text("OTP Expired")
                     return
@@ -484,6 +552,11 @@ def forgot_password_page():
             ).style("background-color: #10b981 !important;")
             reset_button.set_visibility(False)
 
+            email.on("keydown.enter", send_otp_clicked)
+            otp.on("keydown.enter", verify_otp)
+            new_password.on("keydown.enter", reset_password)
+            confirm_password.on("keydown.enter", reset_password)
+
             countdown_timer = ui.timer(1.0, update_countdown)
 
             with ui.row().classes("w-full justify-center mt-5"):
@@ -498,5 +571,6 @@ if __name__ in {"__main__", "__mp_main__"}:
         host="0.0.0.0",
         port=int(os.environ.get("PORT", 8080)),
         dark=True,
-        storage_secret="ai_phishing_detector_storage_secret_key"
+        storage_secret="ai_phishing_detector_storage_secret_key",
+        reconnect_timeout=30.0
     )
