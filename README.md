@@ -28,10 +28,10 @@ The application combines URL parsing, domain inspection, authentication, databas
 ## 📸 Application Screenshots
 
 ### 🔐 Login Page
-![Login Page](screenshots/login.png)
+![Login Page](screenshots/Login_Page.png)
 
 ### 🏠 Main Dashboard
-![Dashboard](screenshots/dashboard.png)
+![Dashboard](screenshots/Dashboard_Page.png)
 
 ### 🔍 Threat Analysis Result
 ![Analysis Result](screenshots/analysis-result.png)
