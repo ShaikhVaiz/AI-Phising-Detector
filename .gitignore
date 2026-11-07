@@ -1,3 +1,17 @@
 .env
 __pycache__/
 .nicegui/
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Python environment
+venv/
+__pycache__/
+*.pyc
