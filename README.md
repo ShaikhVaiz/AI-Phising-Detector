@@ -34,7 +34,7 @@ The application combines URL parsing, domain inspection, authentication, databas
 ![Dashboard](screenshots/Dashboard_Page.png)
 
 ### 🔍 Threat Analysis Result
-![Analysis Result](screenshots/analysis-result.png)
+![Analysis Result](screenshots/Analysis_Result.png)
 ## 🛠️ Technology Stack
 
 | Component | Technology |
