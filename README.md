@@ -25,6 +25,16 @@ The application combines URL parsing, domain inspection, authentication, databas
 - 📊 **Threat Assessment:** Presents AI-generated security findings to help users understand potential URL risks.
 - 🎨 **Modern User Interface:** Responsive dark-themed interface developed using Python NiceGUI.
 
+## 📸 Application Screenshots
+
+### 🔐 Login Page
+![Login Page](screenshots/login.png)
+
+### 🏠 Main Dashboard
+![Dashboard](screenshots/dashboard.png)
+
+### 🔍 Threat Analysis Result
+![Analysis Result](screenshots/analysis-result.png)
 ## 🛠️ Technology Stack
 
 | Component | Technology |
