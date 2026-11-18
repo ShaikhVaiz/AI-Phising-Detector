@@ -1,10 +1,22 @@
 # 🛡️ AI Phishing & Threat Detector
 
-An AI-powered cybersecurity web application that helps users analyze suspicious URLs, inspect domain information, and understand potential phishing risks through Google Gemini AI.
+An AI-powered cybersecurity web application that helps users inspect suspicious URLs, analyze potential phishing indicators, and check email addresses against known public data breaches using Google Gemini AI.
 
-\<p align="center">   \<img src="[https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white](https://img.shields.io/badge/Python-3776AB?style=for-the-badge\&logo=python\&logoColor=white)" alt="Python">   \<img src="[https://img.shields.io/badge/NiceGUI-000000?style=for-the-badge](https://img.shields.io/badge/NiceGUI-000000?style=for-the-badge)" alt="NiceGUI">   \<img src="[https://img.shields.io/badge/Google%20Gemini-8E75B2?style=for-the-badge&logo=googlegemini&logoColor=white](https://img.shields.io/badge/Google%20Gemini-8E75B2?style=for-the-badge\&logo=googlegemini\&logoColor=white)" alt="Google Gemini">   \<img src="[https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white](https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge\&logo=mysql\&logoColor=white)" alt="MySQL">   \<img src="[https://img.shields.io/badge/Render-000000?style=for-the-badge&logo=render&logoColor=white](https://img.shields.io/badge/Render-000000?style=for-the-badge\&logo=render\&logoColor=white)" alt="Render"> \</p>
+<p align="center">
 
-\<p align="center">   \<a href="[https://ai-phising-detector-m5z3.onrender.com/](https://ai-phising-detector-m5z3.onrender.com/)">\<strong>🌐 Live Application\</strong>\</a> ·   \<a href="[https://github.com/ShaikhVaiz/AI-Phising-Detector](https://github.com/ShaikhVaiz/AI-Phising-Detector)">\<strong>📂 GitHub Repository\</strong>\</a> \</p>
+![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![NiceGUI](https://img.shields.io/badge/NiceGUI-000000?style=for-the-badge)
+![Google Gemini](https://img.shields.io/badge/Google%20Gemini-8E75B2?style=for-the-badge&logo=googlegemini&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-4479A1?style=for-the-badge&logo=mysql&logoColor=white)
+![Render](https://img.shields.io/badge/Render-000000?style=for-the-badge&logo=render&logoColor=white)
+
+</p>
+
+<p align="center">
+
+[🌐 Live Application](https://ai-phising-detector-m5z3.onrender.com/) · [📂 GitHub Repository](https://github.com/ShaikhVaiz/AI-Phising-Detector)
+
+</p>
 
 ---
 
@@ -34,85 +46,99 @@ Phishing attacks use deceptive websites and URLs to trick people into sharing se
 
 The **AI Phishing & Threat Detector** provides a web-based interface for examining suspicious URLs and understanding potential security indicators.
 
-The application combines URL and domain inspection with AI-assisted threat assessment. It also provides user authentication and scan history management.
+The application combines rule-based URL inspection, domain analysis, email breach checking, and AI-generated explanations to make security information easier to understand.
 
-The project was developed using Python, NiceGUI, Google Gemini API, and MySQL-compatible database integration.
+It also includes user authentication, password recovery, and scan history management.
 
 ## 🎯 Problem Statement
 
-Users may find it difficult to identify suspicious links because phishing URLs can imitate legitimate websites and use misleading domain names.
+Identifying phishing links can be difficult because malicious URLs may imitate legitimate websites, use misleading domain names, or contain suspicious structures.
 
-This project aims to make URL inspection more accessible by combining domain information with AI-generated security assessments in one application.
+Users also need a convenient way to understand whether their email addresses appear in known public data breaches.
+
+This project aims to bring URL inspection and email exposure checking into one accessible application.
 
 ## ✨ Key Features
 
-| Feature                    | Description                                                                                     |
-| -------------------------- | ----------------------------------------------------------------------------------------------- |
-| AI-Powered Threat Analysis | Uses Google Gemini API to assess submitted URLs                                                 |
-| URL Inspection             | Processes submitted URLs for security analysis                                                  |
-| IP and Domain Analysis     | Extracts host information and identifies IP-based URLs and potential domain spoofing indicators |
-| User Authentication        | Provides registration and login functionality                                                   |
-| Password Protection        | Uses bcrypt password hashing                                                                    |
-| Scan History               | Stores previous security checks in the database                                                 |
-| Threat Assessment          | Presents AI-generated findings in a user-friendly interface                                     |
-| Responsive Interface       | Built using Python NiceGUI                                                                      |
+| Feature | Description |
+|---|---|
+| AI-Powered Threat Analysis | Uses Google Gemini API to explain URL security findings |
+| URL Inspection | Analyzes submitted URLs for suspicious indicators |
+| Domain Analysis | Extracts host and domain information |
+| IP Address Detection | Identifies URLs using raw IP addresses |
+| Suspicious URL Indicators | Checks HTTP usage, suspicious keywords, unusual URL length, and `@` symbols |
+| Email Breach Checker | Checks email addresses against public breach information using XposedOrNot |
+| User Authentication | Provides registration and login functionality |
+| Password Protection | Uses bcrypt password hashing |
+| Password Recovery | Supports email OTP-based password recovery through Resend |
+| Scan History | Stores previous security checks in the database |
+| Responsive Interface | Provides a cyber-themed NiceGUI interface |
 
 ## 📸 Application Screenshots
 
 ### 1. Login Page
 
-\<p align="center">
-&#x20; \<img src="screenshots/Login_Page.png" width="90%" alt="AI Phishing Detector Login Page">
-\</p>
+![AI Phishing Detector Login Page](screenshots/Login_Page.png)
 
 ### 2. Main Dashboard
 
-\<p align="center">
-&#x20; \<img src="screenshots/Dashboard_Page.png" width="90%" alt="AI Phishing Detector Dashboard">
-\</p>
+![AI Phishing Detector Dashboard](screenshots/Dashboard_Page.png)
 
 ### 3. Threat Analysis Result
 
-\<p align="center">
-&#x20; \<img src="screenshots/Analysis_Result.png" width="90%" alt="AI Phishing Threat Analysis Result">
-\</p>
+![AI Phishing Threat Analysis Result](screenshots/Analysis_Result.png)
+
+---
 
 ## 🛠️ Technology Stack
 
-| Component                 | Technology         |
-| ------------------------- | ------------------ |
-| Programming Language      | Python             |
-| Frontend and UI           | NiceGUI            |
-| AI Integration            | Google Gemini API  |
-| Database                  | MySQL / TiDB Cloud |
-| Authentication            | bcrypt             |
-| Email Service             | Resend             |
-| Environment Configuration | python-dotenv      |
-| Deployment                | Render             |
+| Component | Technology |
+|---|---|
+| Programming Language | Python |
+| Frontend and UI | NiceGUI |
+| AI Integration | Google Gemini API |
+| Database | MySQL / TiDB Cloud |
+| Authentication | bcrypt |
+| Email Service | Resend |
+| Breach Information | XposedOrNot API |
+| Environment Configuration | python-dotenv |
+| HTTP Requests | Requests, HTTPX |
+| Deployment | Render |
 
 ## 🏗️ System Architecture
 
 ```mermaid
 flowchart TD
     A[User] --> B[NiceGUI Web Interface]
-    B --> C[URL and Domain Processing]
-    C --> D[Google Gemini API]
-    D --> E[AI Threat Assessment]
-    E --> F[Results Display]
-    B --> G[Authentication]
-    B --> H[MySQL / TiDB Cloud]
-    E --> H
-    H --> I[Scan History]
+    B --> C[Authentication]
+    B --> D[URL Inspection]
+    B --> E[Email Breach Check]
+
+    D --> F[URL and Domain Processing]
+    F --> G[Risk Indicator Analysis]
+    G --> H[Google Gemini API]
+    H --> I[AI Threat Explanation]
+
+    E --> J[XposedOrNot API]
+    J --> K[Breach Information]
+
+    I --> L[Results Display]
+    K --> L
+
+    B --> M[MySQL / TiDB Cloud]
+    L --> M
+    M --> N[Scan History]
 ```
 
 ## ⚙️ How It Works
 
-1. The user opens the application and signs in.
-2. The user submits a URL for inspection.
-3. The application processes the URL and extracts host and domain information.
-4. Google Gemini API is used to generate an AI-assisted assessment.
-5. The application displays the resulting security findings.
-6. Previous scan information is stored in the database for later reference.
+1. The user opens the application and signs in or creates an account.
+2. The user selects the security check they want to perform.
+3. For URL inspection, the application processes the submitted URL and extracts host information.
+4. The application checks for suspicious indicators such as raw IP addresses, insecure HTTP, suspicious keywords, `@` symbols, and unusually long URLs.
+5. Google Gemini generates an explanation based on the detected URL findings.
+6. For email checks, the application queries XposedOrNot for known public breach information.
+7. The application displays the findings and stores security check history in the database.
 
 ## 📁 Project Structure
 
@@ -138,7 +164,8 @@ AI-Phising-Detector/
 - Python 3.10 or later
 - Git
 - Google Gemini API key
-- MySQL or TiDB Cloud database configuration
+- MySQL / TiDB Cloud database configuration
+- Resend API key
 
 ### 1. Clone the Repository
 
@@ -173,20 +200,21 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 5. Configure Environment Variables
+## 🔐 Environment Configuration
 
-Create a `.env` file in the project root and configure the credentials required by the application.
+Create a `.env` file in the project root directory.
 
-Example:
+Add the required credentials:
 
 ```env
 GEMINI_API_KEY=your_gemini_api_key
 DB_PASSWORD=your_database_password
+RESEND_API_KEY=your_resend_api_key
 ```
 
-Configure any additional database or email settings required by your deployment.
+Replace the example values with your own credentials.
 
-**Important:** Never commit your actual `.env` file, API keys, or database credentials to GitHub.
+**Important:** Never upload your actual `.env` file, API keys, or database passwords to GitHub.
 
 ## ▶️ Running the Application
 
@@ -204,26 +232,29 @@ http://localhost:8080
 
 ## 🔒 Security Considerations
 
-- Passwords are protected using bcrypt hashing.
-- API keys and database credentials should be stored in environment variables.
-- Do not submit private or confidential URLs containing personal access tokens.
-- AI-generated assessments should be treated as assistance, not a guarantee of website safety.
+- Passwords are hashed using bcrypt.
+- API keys and database passwords should be stored in environment variables.
+- Never commit private credentials to GitHub.
+- Avoid submitting URLs containing private access tokens or confidential information.
+- AI-generated findings should be treated as security assistance, not a guarantee that a website is safe.
 
 ## ⚠️ Limitations
 
 - AI-generated assessments may be incomplete or incorrect.
-- A suspicious URL may not always be identified correctly.
+- Rule-based URL analysis cannot detect every phishing technique.
+- Email breach checks depend on the availability and coverage of the external breach information provider.
 - The application is an educational security-assistance tool and does not replace professional security analysis.
 
 Always verify suspicious websites independently before entering sensitive information.
 
 ## 🚀 Future Improvements
 
-- Add more URL reputation and threat intelligence sources.
-- Improve domain and URL feature analysis.
-- Add detailed scan reports.
-- Improve historical scan visualization.
+- Integrate additional URL reputation and threat intelligence sources.
+- Improve domain and URL analysis.
+- Add downloadable security reports.
+- Improve scan history visualization.
 - Expand automated testing.
+- Improve threat detection accuracy.
 
 ## 👨‍💻 Author
 
@@ -234,6 +265,8 @@ Always verify suspicious websites independently before entering sensitive inform
 
 ---
 
-\<p align="center">
-&#x20; \<strong>Built with Python, NiceGUI, and Google Gemini AI.\</strong>
-\</p>
+<p align="center">
+
+**Built with Python, NiceGUI, and Google Gemini AI.**
+
+</p>
